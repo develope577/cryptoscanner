@@ -1,12 +1,19 @@
 import { SYMBOLS } from "./symbols.js";
 import { set } from "./store.js";
-import { calculateInitialEma, calculateDistance } from "./ema.js";
+import {
+  calculateInitialEma,
+  calculateDistance,
+  EMA100_PERIOD,
+  EMA100_MULTIPLIER,
+  EMA200_PERIOD,
+  EMA200_MULTIPLIER,
+} from "./ema.js";
 import { logger } from "../lib/logger.js";
 import type { CrossState } from "./types.js";
 
 const BINANCE_REST = "https://api.binance.us/api/v3/klines";
 const KLINE_INTERVAL = "15m";
-const KLINE_LIMIT = 300;
+const KLINE_LIMIT = 400;
 const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 300;
 
@@ -57,8 +64,15 @@ export async function bootstrap(): Promise<void> {
           const lastKline = klines[klines.length - 1]!;
           const price = lastKline.close;
           const volume = lastKline.volume;
-          const ema100 = calculateInitialEma(closes);
+
+          // EMA100: seed = SMA(100), then EMA from candle 101 onward
+          const ema100 = calculateInitialEma(closes, EMA100_PERIOD, EMA100_MULTIPLIER);
           const distance100 = calculateDistance(price, ema100);
+
+          // EMA200: seed = SMA(200), then EMA from candle 201 onward
+          const ema200 = calculateInitialEma(closes, EMA200_PERIOD, EMA200_MULTIPLIER);
+          const distance200 = calculateDistance(price, ema200);
+
           const crossState: CrossState = price >= ema100 ? "ABOVE" : "BELOW";
 
           set({
@@ -66,13 +80,25 @@ export async function bootstrap(): Promise<void> {
             price,
             ema100,
             distance100,
+            ema200,
+            distance200,
             volume,
             crossState,
             lastCross: null,
             updatedAt: Date.now(),
           });
 
-          logger.info({ symbol, price, ema100: Math.round(ema100), distance100: distance100.toFixed(2) }, "Bootstrapped");
+          logger.info(
+            {
+              symbol,
+              price,
+              ema100: Math.round(ema100),
+              ema200: Math.round(ema200),
+              distance100: distance100.toFixed(2),
+              distance200: distance200.toFixed(2),
+            },
+            "Bootstrapped"
+          );
         } catch (err) {
           logger.error({ symbol, err }, "Failed to bootstrap symbol");
         }

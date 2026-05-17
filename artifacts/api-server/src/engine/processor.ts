@@ -1,5 +1,5 @@
 import { get, set } from "./store.js";
-import { updateEma, calculateDistance } from "./ema.js";
+import { updateEma, calculateDistance, EMA100_MULTIPLIER, EMA200_MULTIPLIER } from "./ema.js";
 import { engineEmitter } from "./emitter.js";
 import { logger } from "../lib/logger.js";
 import type { CrossState, LastCross } from "./types.js";
@@ -18,14 +18,18 @@ export function processClosedCandle(candle: ClosedCandle): void {
     return;
   }
 
-  const prevPrice = current.price;
-  const prevEma100 = current.ema100;
+  const prevCrossState = current.crossState;
 
-  const newEma100 = updateEma(prevEma100, candle.close);
+  // 1. Compute new EMAs from previous values + closed candle close price
+  const newEma100 = updateEma(current.ema100, candle.close, EMA100_MULTIPLIER);
+  const newEma200 = updateEma(current.ema200, candle.close, EMA200_MULTIPLIER);
+
+  // 2. Compute distances
   const newPrice = candle.close;
   const newDistance100 = calculateDistance(newPrice, newEma100);
+  const newDistance200 = calculateDistance(newPrice, newEma200);
 
-  const prevCrossState = current.crossState;
+  // 3. Detect cross on EMA100
   const newCrossState: CrossState = newPrice >= newEma100 ? "ABOVE" : "BELOW";
 
   let lastCross: LastCross = current.lastCross;
@@ -38,11 +42,14 @@ export function processClosedCandle(candle: ClosedCandle): void {
     logger.info({ symbol: candle.symbol, price: newPrice, ema100: newEma100 }, "CROSS DOWN detected");
   }
 
+  // 4. Store updated state
   const updated = {
     ...current,
     price: newPrice,
     ema100: newEma100,
     distance100: newDistance100,
+    ema200: newEma200,
+    distance200: newDistance200,
     volume: candle.volume,
     crossState: newCrossState,
     lastCross,

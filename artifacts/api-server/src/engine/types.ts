@@ -6,6 +6,8 @@ export interface SymbolState {
   price: number;
   ema100: number;
   distance100: number;
+  ema200: number;
+  distance200: number;
   volume: number;
   crossState: CrossState;
   lastCross: LastCross;
