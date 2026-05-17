@@ -60,8 +60,11 @@ export async function bootstrap(): Promise<void> {
             return;
           }
 
-          const closes = klines.map((k) => k.close);
-          const lastKline = klines[klines.length - 1]!;
+          // Drop the last candle — it may be the currently-open (not yet closed) candle.
+          // Always seed EMA and set price from fully closed candles only.
+          const closedKlines = klines.slice(0, -1);
+          const closes = closedKlines.map((k) => k.close);
+          const lastKline = closedKlines[closedKlines.length - 1]!;
           const price = lastKline.close;
           const volume = lastKline.volume;
 
