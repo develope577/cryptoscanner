@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Crypto EMA Scanner"
+version = "1.0.0"
+id = "artifacts/scanner-ui"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19250
+
+[services.development]
+run = "pnpm --filter @workspace/scanner-ui run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/scanner-ui", "run", "build" ]
+publicDir = "artifacts/scanner-ui/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19250"
+BASE_PATH = "/"
