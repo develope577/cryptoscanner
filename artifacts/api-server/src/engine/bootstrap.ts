@@ -6,7 +6,7 @@ import type { CrossState } from "./types.js";
 
 const BINANCE_REST = "https://api.binance.us/api/v3/klines";
 const KLINE_INTERVAL = "15m";
-const KLINE_LIMIT = 200;
+const KLINE_LIMIT = 300;
 const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 300;
 
