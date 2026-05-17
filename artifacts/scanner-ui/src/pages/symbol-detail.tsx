@@ -36,7 +36,7 @@ export default function SymbolDetailPage() {
         new window.TradingView.widget({
           autosize: true,
           symbol: `BINANCEUS:${symbolStr}`,
-          interval: "1",
+          interval: "D",
           timezone: "Etc/UTC",
           theme: "dark",
           style: "1",

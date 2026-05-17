@@ -5,7 +5,7 @@ import { logger } from "../lib/logger.js";
 import type { CrossState } from "./types.js";
 
 const BINANCE_REST = "https://api.binance.us/api/v3/klines";
-const KLINE_INTERVAL = "1m";
+const KLINE_INTERVAL = "15m";
 const KLINE_LIMIT = 200;
 const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 300;

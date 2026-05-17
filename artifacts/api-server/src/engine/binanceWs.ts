@@ -24,7 +24,7 @@ interface BinanceKlinePayload {
 let activeWs: WebSocket | null = null;
 
 function buildSubscribeMessage(symbols: string[], id: number) {
-  const streams = symbols.map((s) => `${s.toLowerCase()}@kline_1m`);
+  const streams = symbols.map((s) => `${s.toLowerCase()}@kline_15m`);
   return JSON.stringify({ method: "SUBSCRIBE", params: streams, id });
 }
 
