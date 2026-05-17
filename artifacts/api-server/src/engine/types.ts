@@ -4,12 +4,13 @@ export type LastCross = "CROSS_UP" | "CROSS_DOWN" | null;
 export interface SymbolState {
   symbol: string;
   price: number;
-  ema100: number;
-  distance100: number;
-  ema200: number;
-  distance200: number;
+  ma25: number;
+  signal9: number;
+  distanceMa25: number;
   volume: number;
   crossState: CrossState;
   lastCross: LastCross;
   updatedAt: number;
+  closesBuffer: number[];
+  ma25Buffer: number[];
 }

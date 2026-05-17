@@ -4,7 +4,6 @@ import { useSymbols } from "../hooks/useSymbols";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 
-// Declare TV widget globally
 declare global {
   interface Window {
     TradingView: any;
@@ -61,7 +60,7 @@ export default function SymbolDetailPage() {
   }, [symbolStr]);
 
   const displaySym = symbolStr.replace("USDT", "");
-  
+
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       <header className="flex-none border-b border-border bg-card p-3 px-6 flex items-center justify-between">
@@ -71,19 +70,23 @@ export default function SymbolDetailPage() {
           </Link>
           <h1 className="text-2xl font-bold font-sans tracking-tight">{displaySym}</h1>
         </div>
-        
+
         {symbol && (
           <div className="flex items-center gap-6 font-mono text-sm">
-            <div className={`text-lg font-bold ${symbol.distance100 >= 0 ? "text-primary" : "text-destructive"}`}>
-              {symbol.distance100 >= 0 ? "+" : ""}{symbol.distance100.toFixed(2)}% gap
+            <div className={`text-lg font-bold ${symbol.distanceMa25 >= 0 ? "text-primary" : "text-destructive"}`}>
+              {symbol.distanceMa25 >= 0 ? "+" : ""}{symbol.distanceMa25.toFixed(2)}% vs MA25
             </div>
             <div className="hidden sm:block">
               <span className="text-muted-foreground mr-2">PRICE</span>
               <span>{symbol.price.toFixed(4)}</span>
             </div>
             <div className="hidden md:block">
-              <span className="text-muted-foreground mr-2">EMA100</span>
-              <span>{symbol.ema100.toFixed(4)}</span>
+              <span className="text-muted-foreground mr-2">MA25</span>
+              <span>{symbol.ma25.toFixed(4)}</span>
+            </div>
+            <div className="hidden md:block">
+              <span className="text-muted-foreground mr-2">SIG9</span>
+              <span>{symbol.signal9.toFixed(4)}</span>
             </div>
             {symbol.volume > 0 && (
               <div>
@@ -94,7 +97,7 @@ export default function SymbolDetailPage() {
           </div>
         )}
       </header>
-      
+
       <main className="flex-1 w-full bg-black relative">
         {!chartLoaded && (
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground font-mono animate-pulse">

@@ -1,24 +1,16 @@
 import { SYMBOLS } from "./symbols.js";
 import { set } from "./store.js";
-import {
-  calculateInitialEma,
-  calculateDistance,
-  EMA100_PERIOD,
-  EMA100_MULTIPLIER,
-  EMA200_PERIOD,
-  EMA200_MULTIPLIER,
-} from "./ema.js";
+import { bootstrapBuffers, calcDistance } from "./ma.js";
 import { logger } from "../lib/logger.js";
 import type { CrossState } from "./types.js";
 
 const BINANCE_REST = "https://api.binance.us/api/v3/klines";
 const KLINE_INTERVAL = "15m";
-const KLINE_LIMIT = 1000; // Binance max — more warmup candles = EMA closer to TradingView
+const KLINE_LIMIT = 1000; // Binance max
 const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 300;
 
 interface RawKline {
-  openTime: number;
   close: number;
   volume: number;
 }
@@ -34,7 +26,6 @@ async function fetchKlines(symbol: string): Promise<RawKline[]> {
   const raw = (await res.json()) as unknown[][];
 
   return raw.map((k) => ({
-    openTime: k[0] as number,
     close: parseFloat(k[4] as string),
     volume: parseFloat(k[5] as string),
   }));
@@ -60,45 +51,39 @@ export async function bootstrap(): Promise<void> {
             return;
           }
 
-          // Drop the last candle — it may be the currently-open (not yet closed) candle.
-          // Always seed EMA and set price from fully closed candles only.
-          const closedKlines = klines.slice(0, -1);
-          const closes = closedKlines.map((k) => k.close);
-          const lastKline = closedKlines[closedKlines.length - 1]!;
+          // Drop the last candle — it may be the currently-open (not yet closed) candle
+          const closed = klines.slice(0, -1);
+          const closes = closed.map((k) => k.close);
+          const lastKline = closed[closed.length - 1]!;
           const price = lastKline.close;
           const volume = lastKline.volume;
 
-          // EMA100: seed = SMA(100), then EMA from candle 101 onward
-          const ema100 = calculateInitialEma(closes, EMA100_PERIOD, EMA100_MULTIPLIER);
-          const distance100 = calculateDistance(price, ema100);
-
-          // EMA200: seed = SMA(200), then EMA from candle 201 onward
-          const ema200 = calculateInitialEma(closes, EMA200_PERIOD, EMA200_MULTIPLIER);
-          const distance200 = calculateDistance(price, ema200);
-
-          const crossState: CrossState = price >= ema100 ? "ABOVE" : "BELOW";
+          // MA25: SMA of last 25 closes. Signal9: SMA of last 9 MA25 values.
+          const { closesBuffer, ma25Buffer, ma25, signal9 } = bootstrapBuffers(closes);
+          const distanceMa25 = calcDistance(price, ma25);
+          const crossState: CrossState = price >= ma25 ? "ABOVE" : "BELOW";
 
           set({
             symbol,
             price,
-            ema100,
-            distance100,
-            ema200,
-            distance200,
+            ma25,
+            signal9,
+            distanceMa25,
             volume,
             crossState,
             lastCross: null,
             updatedAt: Date.now(),
+            closesBuffer,
+            ma25Buffer,
           });
 
           logger.info(
             {
               symbol,
               price,
-              ema100: Math.round(ema100),
-              ema200: Math.round(ema200),
-              distance100: distance100.toFixed(2),
-              distance200: distance200.toFixed(2),
+              ma25: ma25.toFixed(4),
+              signal9: signal9.toFixed(4),
+              distanceMa25: distanceMa25.toFixed(2),
             },
             "Bootstrapped"
           );

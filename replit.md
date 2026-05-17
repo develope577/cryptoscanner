@@ -49,20 +49,30 @@ A real-time backend that tracks crypto symbol prices, calculates EMA100 incremen
 
 ```ts
 {
-  symbol: string;        // e.g. "BTCUSDT"
-  price: number;         // last closed candle close price
-  ema100: number;        // current EMA100 value
-  distance100: number;   // (price - ema100) / ema100 * 100 — positive = above EMA
-  volume: number;        // last closed candle volume
+  symbol: string;          // e.g. "BTCUSDT"
+  price: number;           // last closed candle close price
+  ma25: number;            // SMA of last 25 closes
+  signal9: number;         // SMA of last 9 MA25 values (smoothing line)
+  distanceMa25: number;    // (price - ma25) / ma25 * 100 — positive = above MA25
+  volume: number;          // last closed candle volume
   crossState: "ABOVE" | "BELOW";
   lastCross: "CROSS_UP" | "CROSS_DOWN" | null;
-  updatedAt: number;     // Unix timestamp ms
+  updatedAt: number;       // Unix timestamp ms
+  closesBuffer: number[];  // last 25 closes (rolling window for live MA25)
+  ma25Buffer: number[];    // last 9 MA25 values (rolling window for live Signal9)
 }
 ```
 
+## Indicator logic
+
+- **MA25**: simple average of last 25 closed candle closes — exact match with TradingView, no warmup needed
+- **Signal9**: SMA of last 9 MA25 values — smoothing line, like a signal line on MA25
+- Bootstrap seeds both from 999 closed candles (1000 fetched, last open one dropped)
+- Live updates roll the buffers on each closed 15m candle: drop oldest, add new close, recompute
+
 ## User preferences
 
-- EMA200 intentionally excluded for now — focus is EMA100 only
+- Using MA25 + Signal9 (SMA9 of MA25) instead of EMA — simpler, matches TradingView exactly
 - Symbol list is a placeholder; user will provide the full list
 
 ## Gotchas

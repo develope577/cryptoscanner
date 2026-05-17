@@ -13,6 +13,7 @@ function formatVol(vol: number) {
 }
 
 function SymbolCard({ symbol }: { symbol: SymbolState }) {
+  if (symbol.distanceMa25 === undefined) return null;
   const displaySym = symbol.symbol.replace("USDT", "");
   const [flash, setFlash] = useState(false);
   const lastUpdate = useRef(symbol.updatedAt);
@@ -26,30 +27,35 @@ function SymbolCard({ symbol }: { symbol: SymbolState }) {
     }
   }, [symbol.updatedAt]);
 
-  const isPos = symbol.distance100 >= 0;
+  const isPos = symbol.distanceMa25 >= 0;
   const distColor = isPos ? "text-primary" : "text-destructive";
   const sign = isPos ? "+" : "";
 
   return (
     <Link href={`/symbol/${symbol.symbol}`} className="block">
-      <div 
-        className={`border border-border bg-card p-4 rounded-sm transition-colors hover:border-muted-foreground ${flash ? 'animate-flash' : ''}`}
+      <div
+        className={`border border-border bg-card p-4 rounded-sm transition-colors hover:border-muted-foreground ${flash ? "animate-flash" : ""}`}
       >
         <div className="flex justify-between items-start mb-2">
           <span className="text-xl font-bold font-sans tracking-tight text-foreground">{displaySym}</span>
           <span className={`text-lg font-bold font-mono ${distColor}`}>
-            {sign}{symbol.distance100.toFixed(2)}%
+            {sign}{symbol.distanceMa25.toFixed(2)}%
           </span>
         </div>
         <div className="flex justify-between items-end text-sm text-muted-foreground font-mono mt-4">
           <div className="flex flex-col gap-1">
             <span>Price: {symbol.price.toFixed(4)}</span>
-            <span>EMA: {symbol.ema100.toFixed(4)}</span>
+            <span>MA25: {symbol.ma25.toFixed(4)}</span>
+            <span>Sig9: {symbol.signal9.toFixed(4)}</span>
           </div>
           <div className="flex flex-col items-end gap-1">
             {symbol.volume > 0 && <span>Vol: {formatVol(symbol.volume)}</span>}
-            {symbol.lastCross === "CROSS_UP" && <span className="text-primary font-bold text-xs bg-primary/10 px-2 py-0.5 rounded-sm">CROSS UP</span>}
-            {symbol.lastCross === "CROSS_DOWN" && <span className="text-destructive font-bold text-xs bg-destructive/10 px-2 py-0.5 rounded-sm">CROSS DOWN</span>}
+            {symbol.lastCross === "CROSS_UP" && (
+              <span className="text-primary font-bold text-xs bg-primary/10 px-2 py-0.5 rounded-sm">CROSS UP</span>
+            )}
+            {symbol.lastCross === "CROSS_DOWN" && (
+              <span className="text-destructive font-bold text-xs bg-destructive/10 px-2 py-0.5 rounded-sm">CROSS DOWN</span>
+            )}
           </div>
         </div>
       </div>
@@ -66,9 +72,9 @@ export default function ListingPage() {
     let list = Array.from(symbols.values());
     if (search) {
       const q = search.toLowerCase();
-      list = list.filter(s => s.symbol.toLowerCase().includes(q));
+      list = list.filter((s) => s.symbol.toLowerCase().includes(q));
     }
-    list.sort((a, b) => sortDesc ? b.distance100 - a.distance100 : a.distance100 - b.distance100);
+    list.sort((a, b) => sortDesc ? b.distanceMa25 - a.distanceMa25 : a.distanceMa25 - b.distanceMa25);
     return list;
   }, [symbols, search, sortDesc]);
 
@@ -78,26 +84,28 @@ export default function ListingPage() {
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div className="flex items-center gap-3">
             <Activity className="text-primary w-6 h-6" />
-            <h1 className="text-2xl font-sans font-bold tracking-tight">EMA100 SCANNER</h1>
+            <h1 className="text-2xl font-sans font-bold tracking-tight">MA25 SCANNER</h1>
             <div className="flex items-center gap-2 ml-4">
-              <span className={`w-2 h-2 rounded-full ${wsStatus === 'open' ? 'bg-primary' : wsStatus === 'connecting' ? 'bg-yellow-500' : 'bg-destructive'}`}></span>
+              <span
+                className={`w-2 h-2 rounded-full ${wsStatus === "open" ? "bg-primary" : wsStatus === "connecting" ? "bg-yellow-500" : "bg-destructive"}`}
+              ></span>
               <span className="text-xs text-muted-foreground uppercase font-mono">{wsStatus}</span>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2 w-full md:w-auto">
             <div className="relative w-full md:w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search symbol..." 
+              <Input
+                placeholder="Search symbol..."
                 className="pl-9 font-mono bg-card"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <Button 
-              variant="outline" 
-              size="icon" 
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => setSortDesc(!sortDesc)}
               title="Toggle Sort"
               className="bg-card"
@@ -108,7 +116,7 @@ export default function ListingPage() {
         </header>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredAndSorted.map(sym => (
+          {filteredAndSorted.map((sym) => (
             <SymbolCard key={sym.symbol} symbol={sym} />
           ))}
           {filteredAndSorted.length === 0 && symbols.size > 0 && (
