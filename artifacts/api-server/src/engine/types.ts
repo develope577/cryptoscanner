@@ -5,12 +5,11 @@ export interface SymbolState {
   symbol: string;
   price: number;
   ma25: number;
-  signal9: number;
+  ema200: number;
   distanceMa25: number;
   volume: number;
   crossState: CrossState;
   lastCross: LastCross;
   updatedAt: number;
   closesBuffer: number[];
-  ma25Buffer: number[];
 }

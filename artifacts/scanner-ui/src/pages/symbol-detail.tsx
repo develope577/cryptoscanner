@@ -85,8 +85,8 @@ export default function SymbolDetailPage() {
               <span>{symbol.ma25.toFixed(4)}</span>
             </div>
             <div className="hidden md:block">
-              <span className="text-muted-foreground mr-2">SIG9</span>
-              <span>{symbol.signal9.toFixed(4)}</span>
+              <span className="text-muted-foreground mr-2">EMA200 4h</span>
+              <span>{symbol.ema200.toFixed(4)}</span>
             </div>
             {symbol.volume > 0 && (
               <div>

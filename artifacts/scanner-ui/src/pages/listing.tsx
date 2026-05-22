@@ -13,7 +13,7 @@ function formatVol(vol: number) {
 }
 
 function SymbolCard({ symbol }: { symbol: SymbolState }) {
-  if (symbol.distanceMa25 === undefined) return null;
+  if (symbol.distanceMa25 === undefined || symbol.ema200 === undefined) return null;
   const displaySym = symbol.symbol.replace("USDT", "");
   const [flash, setFlash] = useState(false);
   const lastUpdate = useRef(symbol.updatedAt);
@@ -46,7 +46,7 @@ function SymbolCard({ symbol }: { symbol: SymbolState }) {
           <div className="flex flex-col gap-1">
             <span>Price: {symbol.price.toFixed(4)}</span>
             <span>MA25: {symbol.ma25.toFixed(4)}</span>
-            <span>Sig9: {symbol.signal9.toFixed(4)}</span>
+            <span>EMA200 (4h): {symbol.ema200.toFixed(4)}</span>
           </div>
           <div className="flex flex-col items-end gap-1">
             {symbol.volume > 0 && <span>Vol: {formatVol(symbol.volume)}</span>}

@@ -1,11 +1,11 @@
 import { SYMBOLS } from "./symbols.js";
 import { set } from "./store.js";
-import { bootstrapBuffers, calcDistance } from "./ma.js";
+import { bootstrapMA25, calcDistance } from "./ma.js";
+import { calculateInitialEma200 } from "./ema.js";
 import { logger } from "../lib/logger.js";
 import type { CrossState } from "./types.js";
 
 const BINANCE_REST = "https://api.binance.us/api/v3/klines";
-const KLINE_INTERVAL = "15m";
 const KLINE_LIMIT = 1000; // Binance max
 const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 300;
@@ -15,16 +15,13 @@ interface RawKline {
   volume: number;
 }
 
-async function fetchKlines(symbol: string): Promise<RawKline[]> {
-  const url = `${BINANCE_REST}?symbol=${symbol}&interval=${KLINE_INTERVAL}&limit=${KLINE_LIMIT}`;
+async function fetchKlines(symbol: string, interval: string): Promise<RawKline[]> {
+  const url = `${BINANCE_REST}?symbol=${symbol}&interval=${interval}&limit=${KLINE_LIMIT}`;
   const res = await fetch(url);
-
   if (!res.ok) {
-    throw new Error(`Binance REST error for ${symbol}: ${res.status} ${res.statusText}`);
+    throw new Error(`Binance REST error for ${symbol} ${interval}: ${res.status} ${res.statusText}`);
   }
-
   const raw = (await res.json()) as unknown[][];
-
   return raw.map((k) => ({
     close: parseFloat(k[4] as string),
     volume: parseFloat(k[5] as string),
@@ -44,37 +41,47 @@ export async function bootstrap(): Promise<void> {
     await Promise.all(
       batch.map(async (symbol) => {
         try {
-          const klines = await fetchKlines(symbol);
+          // Fetch 15m candles for MA25 and 4h candles for EMA200 in parallel
+          const [klines15m, klines4h] = await Promise.all([
+            fetchKlines(symbol, "15m"),
+            fetchKlines(symbol, "4h"),
+          ]);
 
-          if (klines.length === 0) {
-            logger.warn({ symbol }, "No klines returned, skipping");
+          if (klines15m.length === 0) {
+            logger.warn({ symbol }, "No 15m klines returned, skipping");
             return;
           }
 
-          // Drop the last candle — it may be the currently-open (not yet closed) candle
-          const closed = klines.slice(0, -1);
-          const closes = closed.map((k) => k.close);
-          const lastKline = closed[closed.length - 1]!;
+          // Drop last candle (may be open) from both intervals
+          const closed15m = klines15m.slice(0, -1);
+          const closed4h = klines4h.slice(0, -1);
+
+          const closes15m = closed15m.map((k) => k.close);
+          const closes4h = closed4h.map((k) => k.close);
+
+          const lastKline = closed15m[closed15m.length - 1]!;
           const price = lastKline.close;
           const volume = lastKline.volume;
 
-          // MA25: SMA of last 25 closes. Signal9: SMA of last 9 MA25 values.
-          const { closesBuffer, ma25Buffer, ma25, signal9 } = bootstrapBuffers(closes);
+          // MA25 from 15m closes
+          const { closesBuffer, ma25 } = bootstrapMA25(closes15m);
           const distanceMa25 = calcDistance(price, ma25);
           const crossState: CrossState = price >= ma25 ? "ABOVE" : "BELOW";
+
+          // EMA200 from 4h closes — seeded with SMA(200), display only
+          const ema200 = calculateInitialEma200(closes4h);
 
           set({
             symbol,
             price,
             ma25,
-            signal9,
+            ema200,
             distanceMa25,
             volume,
             crossState,
             lastCross: null,
             updatedAt: Date.now(),
             closesBuffer,
-            ma25Buffer,
           });
 
           logger.info(
@@ -82,7 +89,7 @@ export async function bootstrap(): Promise<void> {
               symbol,
               price,
               ma25: ma25.toFixed(4),
-              signal9: signal9.toFixed(4),
+              ema200: ema200.toFixed(4),
               distanceMa25: distanceMa25.toFixed(2),
             },
             "Bootstrapped"

@@ -1,6 +1,6 @@
 import WebSocket from "ws";
 import { SYMBOLS } from "./symbols.js";
-import { processClosedCandle } from "./processor.js";
+import { processClosedCandle, process4hCandle } from "./processor.js";
 import { logger } from "../lib/logger.js";
 
 const BINANCE_WS_BASE = "wss://stream.binance.us:9443/ws";
@@ -23,8 +23,7 @@ interface BinanceKlinePayload {
 
 let activeWs: WebSocket | null = null;
 
-function buildSubscribeMessage(symbols: string[], id: number) {
-  const streams = symbols.map((s) => `${s.toLowerCase()}@kline_15m`);
+function buildSubscribeMessage(streams: string[], id: number) {
   return JSON.stringify({ method: "SUBSCRIBE", params: streams, id });
 }
 
@@ -35,18 +34,21 @@ function connect(): void {
   ws.on("open", () => {
     logger.info("Binance WebSocket connected");
 
-    for (let i = 0; i < SYMBOLS.length; i += SUBSCRIBE_BATCH_SIZE) {
-      const batch = SYMBOLS.slice(i, i + SUBSCRIBE_BATCH_SIZE);
-      const msg = buildSubscribeMessage(batch, i / SUBSCRIBE_BATCH_SIZE + 1);
-      ws.send(msg);
+    // Subscribe to both 15m (MA25) and 4h (EMA200) streams for all symbols
+    const streams15m = SYMBOLS.map((s) => `${s.toLowerCase()}@kline_15m`);
+    const streams4h = SYMBOLS.map((s) => `${s.toLowerCase()}@kline_4h`);
+    const allStreams = [...streams15m, ...streams4h];
+
+    for (let i = 0; i < allStreams.length; i += SUBSCRIBE_BATCH_SIZE) {
+      const batch = allStreams.slice(i, i + SUBSCRIBE_BATCH_SIZE);
+      ws.send(buildSubscribeMessage(batch, i / SUBSCRIBE_BATCH_SIZE + 1));
     }
 
-    logger.info({ count: SYMBOLS.length }, "Subscribed to kline streams");
+    logger.info({ symbols: SYMBOLS.length, streams: allStreams.length }, "Subscribed to kline streams");
   });
 
   ws.on("message", (raw: Buffer) => {
     let parsed: { stream?: string; data?: BinanceKlinePayload } | BinanceKlinePayload;
-
     try {
       parsed = JSON.parse(raw.toString());
     } catch {
@@ -54,19 +56,25 @@ function connect(): void {
     }
 
     const payload: BinanceKlinePayload | undefined =
-      "data" in parsed ? parsed.data : ("k" in parsed ? (parsed as BinanceKlinePayload) : undefined);
+      "data" in parsed ? parsed.data : "k" in parsed ? (parsed as BinanceKlinePayload) : undefined;
 
     if (!payload || payload.e !== "kline") return;
 
     const kline = payload.k;
+    if (!kline.x) return; // Only process closed candles
 
-    if (!kline.x) return;
-
-    processClosedCandle({
-      symbol: kline.s,
-      close: parseFloat(kline.c),
-      volume: parseFloat(kline.v),
-    });
+    if (kline.i === "15m") {
+      processClosedCandle({
+        symbol: kline.s,
+        close: parseFloat(kline.c),
+        volume: parseFloat(kline.v),
+      });
+    } else if (kline.i === "4h") {
+      process4hCandle({
+        symbol: kline.s,
+        close: parseFloat(kline.c),
+      });
+    }
   });
 
   ws.on("error", (err) => {
