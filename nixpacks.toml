@@ -1,5 +1,8 @@
+[phases.setup]
+nixPkgs = ["nodejs_24", "nodePackages.pnpm"]
+
 [phases.install]
-cmds = ["pnpm install --no-frozen-lockfile"]
+cmds = ["pnpm install"]
 
 [phases.build]
 cmds = ["pnpm run build:prod"]
