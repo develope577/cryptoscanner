@@ -5,7 +5,7 @@ import { calculateInitialEma200 } from "./ema.js";
 import { logger } from "../lib/logger.js";
 import type { CrossState } from "./types.js";
 
-const BINANCE_REST = "https://api.binance.us/api/v3/klines";
+const BINANCE_REST = "https://api.binance.com/api/v3/klines";
 const KLINE_LIMIT = 1000; // Binance max
 const BATCH_SIZE = 10;
 const BATCH_DELAY_MS = 300;

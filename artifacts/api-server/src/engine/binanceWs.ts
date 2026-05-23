@@ -3,7 +3,7 @@ import { SYMBOLS } from "./symbols.js";
 import { processClosedCandle, process4hCandle } from "./processor.js";
 import { logger } from "../lib/logger.js";
 
-const BINANCE_WS_BASE = "wss://stream.binance.us:9443/ws";
+const BINANCE_WS_BASE = "wss://stream.binance.com:9443/ws";
 const RECONNECT_DELAY_MS = 5000;
 const SUBSCRIBE_BATCH_SIZE = 50;
 
