@@ -38,11 +38,14 @@ export function processClosedCandle(candle: ClosedCandle): void {
     logger.info({ symbol: candle.symbol, price: newPrice, ma25 }, "CROSS DOWN detected");
   }
 
+  const distanceEma200 = calcDistance(newPrice, current.ema200);
+
   const updated = {
     ...current,
     price: newPrice,
     ma25,
     distanceMa25,
+    distanceEma200,
     volume: candle.volume,
     crossState: newCrossState,
     lastCross,

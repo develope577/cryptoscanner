@@ -49,7 +49,11 @@ function SymbolCard({ symbol }: { symbol: SymbolState }) {
             <span>EMA200 (4h): {symbol.ema200.toFixed(4)}</span>
           </div>
           <div className="flex flex-col items-end gap-1">
-            {symbol.volume > 0 && <span>Vol: {formatVol(symbol.volume)}</span>}
+            {symbol.distanceEma200 !== undefined && (
+              <span className={symbol.distanceEma200 >= 0 ? "text-primary" : "text-destructive"}>
+                {symbol.distanceEma200 >= 0 ? "+" : ""}{symbol.distanceEma200.toFixed(2)}% EMA200
+              </span>
+            )}
             {symbol.lastCross === "CROSS_UP" && (
               <span className="text-primary font-bold text-xs bg-primary/10 px-2 py-0.5 rounded-sm">CROSS UP</span>
             )}

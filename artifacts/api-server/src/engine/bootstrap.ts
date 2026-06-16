@@ -70,6 +70,7 @@ export async function bootstrap(): Promise<void> {
 
           // EMA200 from 4h closes — seeded with SMA(200), display only
           const ema200 = calculateInitialEma200(closes4h);
+          const distanceEma200 = calcDistance(price, ema200);
 
           set({
             symbol,
@@ -77,6 +78,7 @@ export async function bootstrap(): Promise<void> {
             ma25,
             ema200,
             distanceMa25,
+            distanceEma200,
             volume,
             crossState,
             lastCross: null,

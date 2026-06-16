@@ -7,6 +7,7 @@ export interface SymbolState {
   ma25: number;
   ema200: number;
   distanceMa25: number;
+  distanceEma200: number;
   volume: number;
   crossState: CrossState;
   lastCross: LastCross;
