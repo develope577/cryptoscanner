@@ -70,7 +70,17 @@ function SymbolCard({ symbol }: { symbol: SymbolState }) {
 export default function ListingPage() {
   const { symbols, wsStatus } = useSymbols();
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"ma25" | "ema200">("ma25");
   const [sortDesc, setSortDesc] = useState(true);
+
+  function handleSort(key: "ma25" | "ema200") {
+    if (sortBy === key) {
+      setSortDesc((d) => !d);
+    } else {
+      setSortBy(key);
+      setSortDesc(true);
+    }
+  }
 
   const filteredAndSorted = useMemo(() => {
     let list = Array.from(symbols.values());
@@ -78,9 +88,12 @@ export default function ListingPage() {
       const q = search.toLowerCase();
       list = list.filter((s) => s.symbol.toLowerCase().includes(q));
     }
-    list.sort((a, b) => sortDesc ? b.distanceMa25 - a.distanceMa25 : a.distanceMa25 - b.distanceMa25);
+    list.sort((a, b) => {
+      const field = sortBy === "ma25" ? "distanceMa25" : "distanceEma200";
+      return sortDesc ? b[field] - a[field] : a[field] - b[field];
+    });
     return list;
-  }, [symbols, search, sortDesc]);
+  }, [symbols, search, sortBy, sortDesc]);
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8">
@@ -108,13 +121,20 @@ export default function ListingPage() {
               />
             </div>
             <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setSortDesc(!sortDesc)}
-              title="Toggle Sort"
-              className="bg-card"
+              variant={sortBy === "ma25" ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleSort("ma25")}
+              className="font-mono text-xs gap-1"
             >
-              <ArrowUpDown className="h-4 w-4" />
+              MA25 <ArrowUpDown className="h-3 w-3" />
+            </Button>
+            <Button
+              variant={sortBy === "ema200" ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleSort("ema200")}
+              className="font-mono text-xs gap-1"
+            >
+              EMA200 <ArrowUpDown className="h-3 w-3" />
             </Button>
           </div>
         </header>
