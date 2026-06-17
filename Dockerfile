@@ -10,7 +10,6 @@ COPY lib/api-client-react/package.json ./lib/api-client-react/
 COPY lib/api-spec/package.json ./lib/api-spec/
 COPY lib/api-zod/package.json ./lib/api-zod/
 COPY lib/db/package.json ./lib/db/
-COPY scripts/package.json ./scripts/
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS builder
